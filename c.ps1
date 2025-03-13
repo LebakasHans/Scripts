@@ -5,6 +5,15 @@ function Add-Shortcut {
         [string]$Name,
         [string]$Path
     )
+    # List of reserved command names
+    $reservedNames = @("add", "list", "prune", "delete")
+    
+    # Check if the name is a reserved command
+    if ($reservedNames -contains $Name.ToLower()) {
+        Write-Host "Error: '$Name' is a reserved command name and cannot be used as a shortcut name."
+        return
+    }
+    
     $shortcuts = @{}
     if (Test-Path $shortcutsFile) {
         $shortcuts = Get-Content $shortcutsFile -Raw | ConvertFrom-Json -AsHashtable
@@ -20,7 +29,8 @@ function Add-Shortcut {
 
 function Go-ToShortcut {
     param (
-        [string]$Name
+        [string]$Name,
+        [bool]$OpenInExplorer
     )
     if (-Not (Test-Path $shortcutsFile)) {
         Write-Host "No shortcuts found. Use 'add [key] [path]' to add one."
@@ -37,7 +47,15 @@ function Go-ToShortcut {
             }
             return
         }
-        Set-Location $shortcuts[$Name]
+        
+        if ($OpenInExplorer) {
+            # Open the path in File Explorer
+            Start-Process "explorer.exe" -ArgumentList $shortcuts[$Name]
+            Write-Host "Opening '$($shortcuts[$Name])' in File Explorer"
+        } else {
+            # Change to the directory
+            Set-Location $shortcuts[$Name]
+        }
     } else {
         Write-Host "Shortcut '$Name' not found."
     }
@@ -109,29 +127,65 @@ function Delete-AllShortcuts {
 
 # Main shortcut manager function
 function c {
-    param (
-        [string]$Command,
-        [string]$Arg1,
-        [string]$Arg2
-    )
-    switch ($Command) {
-        "add" { Add-Shortcut -Name $Arg1 -Path $Arg2 }
-        "list" { List-Shortcuts }
-        "prune" { Prune-Shortcuts }
+    # Get all arguments
+    $allArgs = $args
+    
+    # Initialize variables
+    $openInExplorer = $false
+    $processedArgs = @()
+    
+    # Process arguments to check for -o flag
+    foreach ($arg in $allArgs) {
+        if ($arg -eq "-o") {
+            $openInExplorer = $true
+        } else {
+            $processedArgs += $arg
+        }
+    }
+    
+    # Extract commands and arguments
+    $command = if ($processedArgs.Count -gt 0) { $processedArgs[0] } else { "" }
+    $arg1 = if ($processedArgs.Count -gt 1) { $processedArgs[1] } else { "" }
+    $arg2 = if ($processedArgs.Count -gt 2) { $processedArgs[2] } else { "" }
+    
+    # Known commands
+    $knownCommands = @("add", "list", "prune", "delete")
+    
+    # Check if -o is used with a known command (which is incorrect)
+    if ($knownCommands -contains $command -and $openInExplorer) {
+        Write-Host "Error: The -o flag is only valid when navigating to a shortcut, not with the '$command' command."
+        return
+    }
+    
+    # Process based on command
+    switch ($command) {
+        "add" { 
+            Add-Shortcut -Name $arg1 -Path $arg2 
+        }
+        "list" { 
+            List-Shortcuts 
+        }
+        "prune" { 
+            Prune-Shortcuts 
+        }
         "delete" {
-            if ($Arg1 -eq "--all") {
+            if ($arg1 -eq "--all") {
                 Delete-AllShortcuts
-            } elseif ($Arg1) {
-                Delete-Shortcut -Name $Arg1
+            } elseif ($arg1) {
+                Delete-Shortcut -Name $arg1
             } else {
                 Write-Host "Usage: c delete [shortcut_name] or c delete --all"
             }
         }
-        default { Go-ToShortcut -Name $Command }
+        default { 
+            # If no known command is specified, treat the first argument as a shortcut name
+            Go-ToShortcut -Name $command -OpenInExplorer $openInExplorer
+        }
     }
 }
 
-# Execute when script is called
-if ($args.Count -gt 0) {
+# Execute when script is called with arguments
+if ($MyInvocation.InvocationName -ne '.') {
+    # Pass all arguments to the c function
     c @args
 }
