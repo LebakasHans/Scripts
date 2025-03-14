@@ -16,7 +16,10 @@ function Add-Shortcut {
     
     $shortcuts = @{}
     if (Test-Path $shortcutsFile) {
-        $shortcuts = Get-Content $shortcutsFile -Raw | ConvertFrom-Json -AsHashtable
+        $json = Get-Content $shortcutsFile -Raw | ConvertFrom-Json
+        foreach ($property in $json.PSObject.Properties) {
+            $shortcuts[$property.Name] = $property.Value
+        }
     }
     if ($shortcuts.ContainsKey($Name)) {
         Write-Host "Error: Shortcut '$Name' already exists. Use a different name or delete the existing one first."
@@ -36,7 +39,11 @@ function Go-ToShortcut {
         Write-Host "No shortcuts found. Use 'add [key] [path]' to add one."
         return
     }
-    $shortcuts = Get-Content $shortcutsFile -Raw | ConvertFrom-Json -AsHashtable
+    $shortcuts = @{}
+    $json = Get-Content $shortcutsFile -Raw | ConvertFrom-Json
+    foreach ($property in $json.PSObject.Properties) {
+        $shortcuts[$property.Name] = $property.Value
+    }
     if ($shortcuts.ContainsKey($Name)) {
         if (-Not (Test-Path $shortcuts[$Name])) {
             $confirm = Read-Host "Path '$($shortcuts[$Name])' does not exist. Delete shortcut? (y/n)"
@@ -69,7 +76,11 @@ function Delete-Shortcut {
         Write-Host "No shortcuts found."
         return
     }
-    $shortcuts = Get-Content $shortcutsFile -Raw | ConvertFrom-Json -AsHashtable
+    $shortcuts = @{}
+    $json = Get-Content $shortcutsFile -Raw | ConvertFrom-Json
+    foreach ($property in $json.PSObject.Properties) {
+        $shortcuts[$property.Name] = $property.Value
+    }
     if ($shortcuts.ContainsKey($Name)) {
         $deletedPath = $shortcuts[$Name]
         $shortcuts.Remove($Name)
@@ -85,7 +96,11 @@ function List-Shortcuts {
         Write-Host "No shortcuts found."
         return
     }
-    $shortcuts = Get-Content $shortcutsFile -Raw | ConvertFrom-Json -AsHashtable
+    $shortcuts = @{}
+    $json = Get-Content $shortcutsFile -Raw | ConvertFrom-Json
+    foreach ($property in $json.PSObject.Properties) {
+        $shortcuts[$property.Name] = $property.Value
+    }
     if ($shortcuts.Count -eq 0) {
         Write-Host "No shortcuts available."
         return
@@ -99,7 +114,11 @@ function Prune-Shortcuts {
         Write-Host "No shortcuts found."
         return
     }
-    $shortcuts = Get-Content $shortcutsFile -Raw | ConvertFrom-Json -AsHashtable
+    $shortcuts = @{}
+    $json = Get-Content $shortcutsFile -Raw | ConvertFrom-Json
+    foreach ($property in $json.PSObject.Properties) {
+        $shortcuts[$property.Name] = $property.Value
+    }
     $removed = 0
     $keysToRemove = @()
     foreach ($key in $shortcuts.Keys) {
