@@ -145,7 +145,7 @@ function Delete-AllShortcuts {
 }
 
 # Main shortcut manager function
-function c {
+function ShortcutManager {
     # Get all arguments
     $allArgs = $args
     
@@ -206,5 +206,5 @@ function c {
 # Execute when script is called with arguments
 if ($MyInvocation.InvocationName -ne '.') {
     # Pass all arguments to the c function
-    c @args
+    ShortcutManager @args
 }
